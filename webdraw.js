@@ -108,6 +108,9 @@ function drawShape(shape)
 
 function drawScene(theScene)
 {
+  gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
   for (var i = 0; i < theScene.length; i++)
     drawShape(theScene[i]);
 }
