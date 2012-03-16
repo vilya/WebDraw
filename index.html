@@ -1,0 +1,43 @@
+<html>
+  <head>
+    <!-- Library which provides vector, matrix & quaternion classes. -->
+    <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+
+    <!-- Library which provides WebGL setup helpers. -->
+    <script type="text/javascript" src="webgl-utils.js"></script>
+
+    <!-- My code for this page. -->
+    <script type="text/javascript" src="webdraw.js"></script>
+
+    <!-- Vertex shader. -->
+    <script type="x-shader/x-vertex" id="shader-vs">
+      attribute vec3 vertexPos;
+      attribute vec4 vertexColor;
+
+      uniform mat4 mvpMatrix;
+
+      varying vec4 vColor;
+
+      void main()
+      {
+        gl_Position = mvpMatrix * vec4(vertexPos, 1.0);
+        vColor = vertexColor;
+      }
+    </script>
+
+    <!-- Fragment shader. -->
+    <script type="x-shader/x-fragment" id="shader-fs">
+      precision mediump float;
+
+      varying vec4 vColor;
+
+      void main()
+      {
+        gl_FragColor = vColor;
+      }
+    </script>
+  </head>
+  <body onload='webGLStart("webdraw-canvas");'>
+    <canvas id="webdraw-canvas" width="500" height="500"></canvas>
+  </body>
+</html>
