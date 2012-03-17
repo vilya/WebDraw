@@ -12,16 +12,19 @@
     <!-- Vertex shader. -->
     <script type="x-shader/x-vertex" id="shader-vs">
       attribute vec3 vertexPos;
-      attribute vec4 vertexColor;
+      //attribute vec4 vertexColor;
+      attribute vec2 vertexTexCoord;
 
       uniform mat4 mvpMatrix;
 
-      varying vec4 vColor;
+      //varying vec4 vColor;
+      varying vec2 vTexCoord;
 
       void main()
       {
         gl_Position = mvpMatrix * vec4(vertexPos, 1.0);
-        vColor = vertexColor;
+        //vColor = vertexColor;
+        vTexCoord = vertexTexCoord;
       }
     </script>
 
@@ -29,11 +32,15 @@
     <script type="x-shader/x-fragment" id="shader-fs">
       precision mediump float;
 
-      varying vec4 vColor;
+      //varying vec4 vColor;
+      varying vec2 vTexCoord;
+
+      uniform sampler2D tex;
 
       void main()
       {
-        gl_FragColor = vColor;
+        //gl_FragColor = vColor;
+        gl_FragColor = texture2D(tex, vTexCoord);
       }
     </script>
   </head>

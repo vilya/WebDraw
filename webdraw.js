@@ -1,3 +1,9 @@
+/* Requires the following libraries:
+ * - glMatrix    http://github.com/toji/gl-matrix
+ * - webgl-utils https://cvs.khronos.org/svn/repos/registry/trunk/public/webgl/sdk/demos/common/webgl-utils.js
+ */
+
+
 //
 // Global variables
 //
@@ -76,14 +82,35 @@ function makeArrayBuffer(itemSize, numItems, data)
 }
 
 
-function makeShape(transform, drawType, size, points, colors)
+function makeTexture(textureURL)
+{
+  var texture = gl.createTexture();
+  texture.isLoaded = false;
+  texture.image = new Image();
+  texture.image.onload = function() {
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    texture.isLoaded = true;
+  }
+  texture.image.src = textureURL;
+  return texture;
+}
+
+
+function makeShape(transform, drawType, size, points, texCoords, texture)
 {
   shape = {}
   shape.transform = transform;
   shape.drawType = drawType;
   shape.size = size;
   shape.pointBuffer = makeArrayBuffer(3, size, points);
-  shape.colorBuffer = makeArrayBuffer(4, size, colors);
+  //shape.colorBuffer = makeArrayBuffer(4, size, colors);
+  shape.texCoordBuffer = makeArrayBuffer(2, size, texCoords);
+  shape.texture = texture;
   return shape;
 }
 
@@ -99,10 +126,21 @@ function drawShape(shape)
   gl.bindBuffer(gl.ARRAY_BUFFER, shape.pointBuffer);
   gl.vertexAttribPointer(shaderProgram.vertexPosAttr, shape.pointBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
+  /*
   gl.bindBuffer(gl.ARRAY_BUFFER, shape.colorBuffer);
   gl.vertexAttribPointer(shaderProgram.vertexColorAttr, shape.colorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+  */
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, shape.texCoordBuffer);
+  gl.vertexAttribPointer(shaderProgram.vertexTexCoordAttr, shape.texCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, shape.texture);
+  gl.uniform1i(shaderProgram.texUniform, 0);
 
   gl.drawArrays(shape.drawType, 0, shape.size);
+
+  gl.bindTexture(gl.TExTURE_2D, null);
 }
 
 
@@ -149,17 +187,22 @@ function initShaders()
   gl.useProgram(shaderProgram);
 
   shaderProgram.mvpMatrixUniform = gl.getUniformLocation(shaderProgram, "mvpMatrix");
+  shaderProgram.texUniform = gl.getUniformLocation(shaderProgram, "tex");
 
   shaderProgram.vertexPosAttr = gl.getAttribLocation(shaderProgram, "vertexPos");
-  shaderProgram.vertexColorAttr = gl.getAttribLocation(shaderProgram, "vertexColor");
+  //shaderProgram.vertexColorAttr = gl.getAttribLocation(shaderProgram, "vertexColor");
+  shaderProgram.vertexTexCoordAttr = gl.getAttribLocation(shaderProgram, "vertexTexCoord");
 
   gl.enableVertexAttribArray(shaderProgram.vertexPosAttr);
-  gl.enableVertexAttribArray(shaderProgram.vertexColorAttr);
+  //gl.enableVertexAttribArray(shaderProgram.vertexColorAttr);
+  gl.enableVertexAttribArray(shaderProgram.vertexTexCoordAttr);
 }
 
 
 function initScene()
 {
+  var texture = makeTexture("crate.gif");
+
   var triangleTransform = mat4.create();
   mat4.identity(triangleTransform);
   mat4.translate(triangleTransform, [-1.5, 0.0, -7.0]);
@@ -168,10 +211,10 @@ function initScene()
     -1.0, -1.0,  0.0,
      1.0, -1.0,  0.0
   ], [
-    1.0, 0.0, 0.0, 1.0,
-    0.0, 1.0, 0.0, 1.0,
-    0.0, 0.0, 1.0, 1.0
-  ]);
+    1.0, 0.0,// 0.0, 1.0,
+    0.0, 1.0,// 0.0, 1.0,
+    0.0, 0.0//, 1.0, 1.0
+  ], texture);
   scene.push(triangle);
 
   var squareTransform = mat4.create();
@@ -183,12 +226,25 @@ function initScene()
      1.0, -1.0,  0.0,
     -1.0, -1.0,  0.0
   ], [
-    1.0, 0.0, 0.0, 1.0,
-    0.0, 1.0, 0.0, 1.0,
-    1.0, 0.0, 1.0, 1.0,
-    0.0, 1.0, 1.0, 1.0
-  ]);
+    1.0, 1.0,// 0.0, 1.0,
+    0.0, 1.0,// 0.0, 1.0,
+    1.0, 0.0,// 1.0, 1.0,
+    0.0, 0.0//, 1.0, 1.0
+  ], texture);
   scene.push(square);
+}
+
+
+function animate()
+{
+}
+
+
+function tick()
+{
+  window.requestAnimFrame(tick);
+  drawScene(scene);
+  animate();
 }
 
 
@@ -203,5 +259,6 @@ function webGLStart(canvasId)
   gl.clearColor(0.1, 0.1, 0.1, 1.0);
   gl.enable(gl.DEPTH_TEST);
 
+  tick();
   drawScene(scene);
 }
