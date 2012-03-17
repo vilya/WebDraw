@@ -214,12 +214,20 @@ function drawScene(theScene)
   gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  walkSceneGraph(scene.rootNode, drawShape);
+  if (theScene.cameraTransform) {
+    var transform = mat4.create();
+    mat4.inverse(theScene.cameraTransform, transform);
+
+    walkSceneGraph(theScene.rootNode, drawShape, null, transform);
+  }
+  else {
+    walkSceneGraph(theScene.rootNode, drawShape);
+  }
 }
 
 
 //
-// Setup
+// Setup functions
 //
 
 function initWebGL(canvas)
@@ -281,7 +289,7 @@ function initScene()
     0.0, 0.0//, 1.0, 1.0
   ], texture);
   triangle.animate = function(animElapsed) {
-    mat4.rotate(triangle.transform, Math.PI / 2.0 * animElapsed, [0, 1, 0]);
+    mat4.rotate(triangle.transform, radians(90) * animElapsed, [0, 1, 0]);
   };
 
   var square = makeSceneNode();
@@ -300,13 +308,23 @@ function initScene()
     0.0, 0.0//, 1.0, 1.0
   ], texture);
   square.animate = function(animElapsed) {
-    mat4.rotate(square.transform, Math.PI * 2.0 / 3.0 * animElapsed, [1, 0, 0]);
+    mat4.rotate(square.transform, radians(60) * animElapsed, [1, 0, 0]);
   };
 
   scene.rootNode = makeSceneNode();
   scene.rootNode.children = [ triangle, square ];
+
+  // The transform that positions the camera in world coordinates.
+  scene.cameraTransform = mat4.create();
+  mat4.identity(scene.cameraTransform);
+  mat4.translate(scene.cameraTransform, [0.0, 1.0, 0]);
+  mat4.rotate(scene.cameraTransform, radians(5), [1.0, 0.0, 0.0]);
 }
 
+
+//
+// Animation functions
+//
 
 function animationVisitor(node, transform, elapsed)
 {
@@ -334,6 +352,16 @@ function tick()
 }
 
 
+//
+// Main
+//
+
+function radians(angleInDegrees)
+{
+  return angleInDegrees * Math.PI / 180.0;
+}
+
+
 function webGLStart(canvasId)
 {
   var canvas = document.getElementById(canvasId);
@@ -346,6 +374,5 @@ function webGLStart(canvasId)
   gl.enable(gl.DEPTH_TEST);
 
   tick();
-  drawScene(scene);
 }
 
