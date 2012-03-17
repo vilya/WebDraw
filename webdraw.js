@@ -18,6 +18,9 @@ var shaderProgram;
 // The scene to draw. Just represented as an array of shapes, for now.
 var scene = [];
 
+// The last time at which we updated the animation.
+var lastTime = 0;
+
 
 //
 // Functions
@@ -235,8 +238,18 @@ function initScene()
 }
 
 
-function animate()
+function animate(shapes)
 {
+  var timeNow = new Date().getTime();
+  if (lastTime != 0) {
+    var elapsed = (timeNow - lastTime) / 1000.0;
+
+    var theta = [ Math.PI / 2.0 * elapsed, Math.PI * 2.0 / 3.0 * elapsed ];
+    var axis = [ [0, 1, 0], [1, 0, 0] ];
+    for (var i = 0; i < shapes.length; i++)
+      mat4.rotate(shapes[i].transform, theta[i], axis[i]);
+  }
+  lastTime = timeNow;
 }
 
 
@@ -244,7 +257,7 @@ function tick()
 {
   window.requestAnimFrame(tick);
   drawScene(scene);
-  animate();
+  animate(scene);
 }
 
 
