@@ -15,15 +15,15 @@ var gl;
 // The shader we're using to draw the shapes.
 var shaderProgram;
 
-// The scene to draw. Just represented as an array of shapes, for now.
-var scene = [];
+// The scene to draw.
+var scene = {}
 
 // The last time at which we updated the animation.
 var lastTime = 0;
 
 
 //
-// Functions
+// Construction functions
 //
 
 function makeShaderFromElement(id)
@@ -104,10 +104,9 @@ function makeTexture(textureURL)
 }
 
 
-function makeShape(transform, drawType, size, points, texCoords, texture)
+function makeShape(drawType, size, points, texCoords, texture)
 {
   shape = {}
-  shape.transform = transform;
   shape.drawType = drawType;
   shape.size = size;
   shape.pointBuffer = makeArrayBuffer(3, size, points);
@@ -118,12 +117,75 @@ function makeShape(transform, drawType, size, points, texCoords, texture)
 }
 
 
-function drawShape(shape)
+function makeSceneNode()
 {
+  var node = {}
+  node.transform = null;
+  node.shape = null;
+  node.animate = null;
+  node.children = null
+  return node;
+}
+
+
+//
+// Scenegraph traversal
+//
+
+// Does a top-down, depth-first traversal of the scene graph. Calculates the
+// current transform matrix as it goes and invokes a visitor function at each
+// node.
+//
+// The visitor function is expected to have this signature:
+//
+//    visitor(node, transform, extraArgs)
+//
+// where 'node' is the node we're visiting; 'transform' is the local-to-world
+// transformation matrix for the node; and 'extraArgs' is any extra data that
+// you want to call the visitor function with.
+function walkSceneGraph(node, visitor, visitorExtraArgs, parentTransform)
+{
+  // Provide a default value for the parentTransform if none is specified.
+  if (!parentTransform) {
+    parentTransform = mat4.create();
+    mat4.identity(parentTransform);
+  }
+
+  // Calculate the local transform for this node.
+  var localTransform;
+  if (node.transform) {
+    localTransform = mat4.create();
+    mat4.multiply(parentTransform, node.transform, localTransform);
+  }
+  else {
+    localTransform = parentTransform;
+  }
+
+  // Invoke the visitor function for this node.
+  visitor(node, localTransform, visitorExtraArgs);
+
+  // Now visit the child nodes.
+  if (node.children) {
+    for (var i = 0; i < node.children.length; i++)
+      walkSceneGraph(node.children[i], visitor, visitorExtraArgs, localTransform);
+  }
+}
+
+
+//
+// Drawing functions
+//
+
+function drawShape(node, transform)
+{
+  if (!node.shape)
+    return;
+
+  var shape = node.shape;
   var mvpMatrix = mat4.create();
 
   mat4.multiply(gl.projectionMatrix, gl.modelviewMatrix, mvpMatrix);
-  mat4.multiply(mvpMatrix, shape.transform, mvpMatrix);
+  mat4.multiply(mvpMatrix, transform, mvpMatrix);
   gl.uniformMatrix4fv(shaderProgram.mvpMatrixUniform, false, mvpMatrix);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, shape.pointBuffer);
@@ -143,7 +205,7 @@ function drawShape(shape)
 
   gl.drawArrays(shape.drawType, 0, shape.size);
 
-  gl.bindTexture(gl.TExTURE_2D, null);
+  gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
 
@@ -152,8 +214,7 @@ function drawScene(theScene)
   gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  for (var i = 0; i < theScene.length; i++)
-    drawShape(theScene[i]);
+  walkSceneGraph(scene.rootNode, drawShape);
 }
 
 
@@ -206,10 +267,11 @@ function initScene()
 {
   var texture = makeTexture("crate.gif");
 
-  var triangleTransform = mat4.create();
-  mat4.identity(triangleTransform);
-  mat4.translate(triangleTransform, [-1.5, 0.0, -7.0]);
-  var triangle = makeShape(triangleTransform, gl.TRIANGLES, 3, [
+  var triangle = makeSceneNode();
+  triangle.transform = mat4.create();
+  mat4.identity(triangle.transform);
+  mat4.translate(triangle.transform, [-1.5, 0.0, -7.0]);
+  triangle.shape = makeShape(gl.TRIANGLES, 3, [
      0.0,  1.0,  0.0,
     -1.0, -1.0,  0.0,
      1.0, -1.0,  0.0
@@ -218,12 +280,15 @@ function initScene()
     0.0, 1.0,// 0.0, 1.0,
     0.0, 0.0//, 1.0, 1.0
   ], texture);
-  scene.push(triangle);
+  triangle.animate = function(animElapsed) {
+    mat4.rotate(triangle.transform, Math.PI / 2.0 * animElapsed, [0, 1, 0]);
+  };
 
-  var squareTransform = mat4.create();
-  mat4.identity(squareTransform);
-  mat4.translate(squareTransform, [1.5, 0.0, -7.0]);
-  var square = makeShape(squareTransform, gl.TRIANGLE_STRIP, 4, [
+  var square = makeSceneNode();
+  square.transform = mat4.create();
+  mat4.identity(square.transform);
+  mat4.translate(square.transform, [1.5, 0.0, -7.0]);
+  square.shape = makeShape(gl.TRIANGLE_STRIP, 4, [
      1.0,  1.0,  0.0,
     -1.0,  1.0,  0.0,
      1.0, -1.0,  0.0,
@@ -234,20 +299,28 @@ function initScene()
     1.0, 0.0,// 1.0, 1.0,
     0.0, 0.0//, 1.0, 1.0
   ], texture);
-  scene.push(square);
+  square.animate = function(animElapsed) {
+    mat4.rotate(square.transform, Math.PI * 2.0 / 3.0 * animElapsed, [1, 0, 0]);
+  };
+
+  scene.rootNode = makeSceneNode();
+  scene.rootNode.children = [ triangle, square ];
 }
 
 
-function animate(shapes)
+function animationVisitor(node, transform, elapsed)
+{
+  if (node.animate)
+    node.animate(elapsed);
+}
+
+
+function animate(scene)
 {
   var timeNow = new Date().getTime();
   if (lastTime != 0) {
     var elapsed = (timeNow - lastTime) / 1000.0;
-
-    var theta = [ Math.PI / 2.0 * elapsed, Math.PI * 2.0 / 3.0 * elapsed ];
-    var axis = [ [0, 1, 0], [1, 0, 0] ];
-    for (var i = 0; i < shapes.length; i++)
-      mat4.rotate(shapes[i].transform, theta[i], axis[i]);
+    walkSceneGraph(scene.rootNode, animationVisitor, elapsed);
   }
   lastTime = timeNow;
 }
@@ -275,3 +348,4 @@ function webGLStart(canvasId)
   tick();
   drawScene(scene);
 }
+
