@@ -245,26 +245,44 @@ function drawScene(scene, shaderProgram)
 function handleKeyPressed(event)
 {
   gKeysDown[event.keyCode] = true;
+  gKeysDown[String.fromCharCode(event.keyCode)] = true;
 }
 
 
 function handleKeyReleased(event)
 {
   gKeysDown[event.keyCode] = false;
+  gKeysDown[String.fromCharCode(event.keyCode)] = false;
 }
 
 
 function handleKeys(scene)
 {
   var speed = 0.2;
+  var angle = radians(1);
+
+  if (gKeysDown['A'])
+    mat4.translate(scene.cameraTransform, [-speed, 0, 0]);      // move right
+  if (gKeysDown['D'])
+    mat4.translate(scene.cameraTransform, [speed, 0, 0]);       // move left
+  if (gKeysDown['E'])
+    mat4.translate(scene.cameraTransform, [0.0, speed, 0]);     // move up
+  if (gKeysDown['Q'])
+    mat4.translate(scene.cameraTransform, [0.0, -speed, 0]);    // move down
+
+  if (gKeysDown['W'])
+    mat4.translate(scene.cameraTransform, [0.0, 0.0, -speed]);   // move forward
+  if (gKeysDown['S'])
+    mat4.translate(scene.cameraTransform, [0.0, 0.0, speed]);  // move back
+
   if (gKeysDown[37]) // left arrow
-    mat4.translate(scene.cameraTransform, [-speed, 0, 0]);
+    mat4.rotate(scene.cameraTransform, angle, [0, 1, 0]);       // look left
   if (gKeysDown[39]) // right arrow
-    mat4.translate(scene.cameraTransform, [speed, 0, 0]);
+    mat4.rotate(scene.cameraTransform, -angle, [0, 1, 0]);      // look right
   if (gKeysDown[38]) // up arrow
-    mat4.translate(scene.cameraTransform, [0.0, speed, 0]);
+    mat4.rotate(scene.cameraTransform, angle, [1, 0, 0]);       // look up
   if (gKeysDown[40]) // down arrow
-    mat4.translate(scene.cameraTransform, [0.0, -speed, 0]);
+    mat4.rotate(scene.cameraTransform, -angle, [1, 0, 0]);      // look down
 }
 
 
@@ -359,9 +377,6 @@ function initScene()
 
   var scene = makeScene();
   scene.rootNode.children = [ triangle, square ];
-
-  mat4.translate(scene.cameraTransform, [0.0, 1.0, 0]);
-  mat4.rotate(scene.cameraTransform, radians(5), [1.0, 0.0, 0.0]);
 
   return scene;
 }
