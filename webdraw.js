@@ -12,14 +12,8 @@
 // initialise it before using.
 var gl;
 
-// The shader we're using to draw the shapes.
-var shaderProgram;
-
-// The scene to draw.
-var scene = {}
-
 // The last time at which we updated the animation.
-var lastTime = 0;
+var gLastTime = 0;
 
 
 //
@@ -91,8 +85,9 @@ function makeTexture(textureURL)
   texture.isLoaded = false;
   texture.image = new Image();
   texture.image.onload = function() {
-    gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+    gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -125,6 +120,18 @@ function makeSceneNode()
   node.animate = null;
   node.children = null
   return node;
+}
+
+
+function makeScene()
+{
+  var scene = {}
+  scene.rootNode = makeSceneNode();
+  scene.cameraTransform = mat4.create();
+
+  mat4.identity(scene.cameraTransform);
+
+  return scene;
 }
 
 
@@ -176,7 +183,7 @@ function walkSceneGraph(node, visitor, visitorExtraArgs, parentTransform)
 // Drawing functions
 //
 
-function drawShape(node, transform)
+function drawShape(node, transform, shaderProgram)
 {
   if (!node.shape)
     return;
@@ -209,19 +216,21 @@ function drawShape(node, transform)
 }
 
 
-function drawScene(theScene)
+function drawScene(scene, shaderProgram)
 {
   gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  if (theScene.cameraTransform) {
-    var transform = mat4.create();
-    mat4.inverse(theScene.cameraTransform, transform);
+  gl.useProgram(shaderProgram);
 
-    walkSceneGraph(theScene.rootNode, drawShape, null, transform);
+  if (scene.cameraTransform) {
+    var transform = mat4.create();
+    mat4.inverse(scene.cameraTransform, transform);
+
+    walkSceneGraph(scene.rootNode, drawShape, shaderProgram, transform);
   }
   else {
-    walkSceneGraph(theScene.rootNode, drawShape);
+    walkSceneGraph(scene.rootNode, drawShape);
   }
 }
 
@@ -254,7 +263,7 @@ function initShaders()
   var vertexShader = makeShaderFromElement("shader-vs");
   var fragmentShader = makeShaderFromElement("shader-fs");
 
-  shaderProgram = makeShaderProgram(vertexShader, fragmentShader);
+  var shaderProgram = makeShaderProgram(vertexShader, fragmentShader);
 
   gl.useProgram(shaderProgram);
 
@@ -268,6 +277,10 @@ function initShaders()
   gl.enableVertexAttribArray(shaderProgram.vertexPosAttr);
   //gl.enableVertexAttribArray(shaderProgram.vertexColorAttr);
   gl.enableVertexAttribArray(shaderProgram.vertexTexCoordAttr);
+
+  gl.useProgram(null);
+
+  return shaderProgram;
 }
 
 
@@ -311,14 +324,13 @@ function initScene()
     mat4.rotate(square.transform, radians(60) * animElapsed, [1, 0, 0]);
   };
 
-  scene.rootNode = makeSceneNode();
+  var scene = makeScene();
   scene.rootNode.children = [ triangle, square ];
 
-  // The transform that positions the camera in world coordinates.
-  scene.cameraTransform = mat4.create();
-  mat4.identity(scene.cameraTransform);
   mat4.translate(scene.cameraTransform, [0.0, 1.0, 0]);
   mat4.rotate(scene.cameraTransform, radians(5), [1.0, 0.0, 0.0]);
+
+  return scene;
 }
 
 
@@ -336,24 +348,26 @@ function animationVisitor(node, transform, elapsed)
 function animate(scene)
 {
   var timeNow = new Date().getTime();
-  if (lastTime != 0) {
-    var elapsed = (timeNow - lastTime) / 1000.0;
+  if (gLastTime != 0) {
+    var elapsed = (timeNow - gLastTime) / 1000.0;
     walkSceneGraph(scene.rootNode, animationVisitor, elapsed);
   }
-  lastTime = timeNow;
+  gLastTime = timeNow;
 }
 
 
+/*
 function tick()
 {
   window.requestAnimFrame(tick);
-  drawScene(scene);
-  animate(scene);
+  drawScene(gScene);
+  animate(gScene);
 }
+*/
 
 
 //
-// Main
+// Helpers
 //
 
 function radians(angleInDegrees)
@@ -362,17 +376,26 @@ function radians(angleInDegrees)
 }
 
 
+//
+// Main
+//
+
 function webGLStart(canvasId)
 {
   var canvas = document.getElementById(canvasId);
   initWebGL(canvas);
 
-  initShaders();
-  initScene();
+  var gShaderProgram = initShaders();
+  var gScene = initScene();
 
   gl.clearColor(0.1, 0.1, 0.1, 1.0);
   gl.enable(gl.DEPTH_TEST);
 
+  tick = function () {
+    window.requestAnimFrame(tick);
+    drawScene(gScene, gShaderProgram);
+    animate(gScene);
+  }
   tick();
 }
 
