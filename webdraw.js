@@ -15,6 +15,9 @@ var gl;
 // The last time at which we updated the animation.
 var gLastTime = 0;
 
+// Dict of which keys are currently pressed.
+var gKeysDown = {}
+
 
 //
 // Construction functions
@@ -236,6 +239,36 @@ function drawScene(scene, shaderProgram)
 
 
 //
+// Input handling
+//
+
+function handleKeyPressed(event)
+{
+  gKeysDown[event.keyCode] = true;
+}
+
+
+function handleKeyReleased(event)
+{
+  gKeysDown[event.keyCode] = false;
+}
+
+
+function handleKeys(scene)
+{
+  var speed = 0.2;
+  if (gKeysDown[37]) // left arrow
+    mat4.translate(scene.cameraTransform, [-speed, 0, 0]);
+  if (gKeysDown[39]) // right arrow
+    mat4.translate(scene.cameraTransform, [speed, 0, 0]);
+  if (gKeysDown[38]) // up arrow
+    mat4.translate(scene.cameraTransform, [0.0, speed, 0]);
+  if (gKeysDown[40]) // down arrow
+    mat4.translate(scene.cameraTransform, [0.0, -speed, 0]);
+}
+
+
+//
 // Setup functions
 //
 
@@ -356,16 +389,6 @@ function animate(scene)
 }
 
 
-/*
-function tick()
-{
-  window.requestAnimFrame(tick);
-  drawScene(gScene);
-  animate(gScene);
-}
-*/
-
-
 //
 // Helpers
 //
@@ -391,8 +414,12 @@ function webGLStart(canvasId)
   gl.clearColor(0.1, 0.1, 0.1, 1.0);
   gl.enable(gl.DEPTH_TEST);
 
+  document.onkeydown = handleKeyPressed;
+  document.onkeyup = handleKeyReleased;
+
   tick = function () {
     window.requestAnimFrame(tick);
+    handleKeys(gScene);
     drawScene(gScene, gShaderProgram);
     animate(gScene);
   }
