@@ -18,6 +18,12 @@ var gLastTime = 0;
 // Dict of which keys are currently pressed.
 var gKeysDown = {}
 
+// Dict of which mouse buttons are currently pressed.
+var gMouseButtonsDown = {}
+
+// The position of the last mouse event.
+var gLastMouse = { 'x': 0, 'y': 0 }
+
 
 //
 // Construction functions
@@ -286,6 +292,47 @@ function handleKeys(scene)
 }
 
 
+function handleMouseDown(event, scene, shaderProgram)
+{
+  gMouseButtonsDown[event.button] = true;
+  gLastMouse.x = event.x;
+  gLastMouse.y = event.y;
+}
+
+
+function handleMouseUp(event, scene, shaderProgram)
+{
+  gMouseButtonsDown[event.button] = false;
+  gLastMouse.x = event.x;
+  gLastMouse.y = event.y;
+}
+
+
+function handleMouseMove(event, scene, shaderProgram)
+{
+  if (gMouseButtonsDown[0]) {
+    var deltaX = event.x - gLastMouse.x;
+    var deltaY = event.y - gLastMouse.y;
+
+    var axis = vec3.create([deltaY, deltaX, 0]);
+    var angle = radians(vec3.length(axis) / 10);
+    vec3.normalize(axis);
+    mat4.rotate(scene.cameraTransform, angle, axis);
+
+    gLastMouse.x = event.x;
+    gLastMouse.y = event.y;
+  }
+}
+
+
+function handleMouseWheel(event, scene, shaderProgram)
+{
+  // TODO: zoom in/out.
+  gLastMouse.x = event.x;
+  gLastMouse.y = event.y;
+}
+
+
 //
 // Setup functions
 //
@@ -322,11 +369,9 @@ function initShaders()
   shaderProgram.texUniform = gl.getUniformLocation(shaderProgram, "tex");
 
   shaderProgram.vertexPosAttr = gl.getAttribLocation(shaderProgram, "vertexPos");
-  //shaderProgram.vertexColorAttr = gl.getAttribLocation(shaderProgram, "vertexColor");
   shaderProgram.vertexTexCoordAttr = gl.getAttribLocation(shaderProgram, "vertexTexCoord");
 
   gl.enableVertexAttribArray(shaderProgram.vertexPosAttr);
-  //gl.enableVertexAttribArray(shaderProgram.vertexColorAttr);
   gl.enableVertexAttribArray(shaderProgram.vertexTexCoordAttr);
 
   gl.useProgram(null);
@@ -348,9 +393,9 @@ function initScene()
     -1.0, -1.0,  0.0,
      1.0, -1.0,  0.0
   ], [
-    1.0, 0.0,// 0.0, 1.0,
-    0.0, 1.0,// 0.0, 1.0,
-    0.0, 0.0//, 1.0, 1.0
+    1.0, 0.0,
+    0.0, 1.0,
+    0.0, 0.0
   ], texture);
   triangle.animate = function(animElapsed) {
     mat4.rotate(triangle.transform, radians(90) * animElapsed, [0, 1, 0]);
@@ -366,10 +411,10 @@ function initScene()
      1.0, -1.0,  0.0,
     -1.0, -1.0,  0.0
   ], [
-    1.0, 1.0,// 0.0, 1.0,
-    0.0, 1.0,// 0.0, 1.0,
-    1.0, 0.0,// 1.0, 1.0,
-    0.0, 0.0//, 1.0, 1.0
+    1.0, 1.0,
+    0.0, 1.0,
+    1.0, 0.0,
+    0.0, 0.0
   ], texture);
   square.animate = function(animElapsed) {
     mat4.rotate(square.transform, radians(60) * animElapsed, [1, 0, 0]);
@@ -423,20 +468,28 @@ function webGLStart(canvasId)
   var canvas = document.getElementById(canvasId);
   initWebGL(canvas);
 
-  var gShaderProgram = initShaders();
-  var gScene = initScene();
+  var shaderProgram = initShaders();
+  var scene = initScene();
 
   gl.clearColor(0.1, 0.1, 0.1, 1.0);
   gl.enable(gl.DEPTH_TEST);
 
+  // Key event handlers.
   document.onkeydown = handleKeyPressed;
   document.onkeyup = handleKeyReleased;
 
+  // Mouse event handlers. Note that we handle mouse down events on the canvas,
+  // not the document.
+  canvas.onmousedown = function(event) { handleMouseDown(event, scene, shaderProgram); }
+  document.onmouseup = function(event) { handleMouseUp(event, scene, shaderProgram); }
+  document.onmousemove = function(event) { handleMouseMove(event, scene, shaderProgram); }
+  document.onmousewheel = function(event) { handleMouseWheel(event, scene, shaderProgram); }
+
   tick = function () {
     window.requestAnimFrame(tick);
-    handleKeys(gScene);
-    drawScene(gScene, gShaderProgram);
-    animate(gScene);
+    handleKeys(scene);
+    drawScene(scene, shaderProgram);
+    animate(scene);
   }
   tick();
 }
