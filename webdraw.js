@@ -1,6 +1,17 @@
-/* Requires the following libraries:
- * - glMatrix    http://github.com/toji/gl-matrix
- * - webgl-utils https://cvs.khronos.org/svn/repos/registry/trunk/public/webgl/sdk/demos/common/webgl-utils.js
+/*
+ * This code is based loosely on the tutorial code at:
+ *  http://learningwebgl.com/blog/?page_id=1217
+ *
+ * Requires the following libraries:
+ *  gl-matrix   http://github.com/toji/gl-matrix
+ *  webgl-utils https://cvs.khronos.org/svn/repos/registry/trunk/public/webgl/sdk/demos/common/webgl-utils.js
+ *
+ * The textures are sourced from:
+ *  crate.gif   https://github.com/gpjt/webgl-lessons/blob/master/lesson06/crate.gif
+ *  grass.jpg   http://www.tabletpcwallpapers.com/ipad-2-tablet-wallpapers/ipad-2-solid-color-wallpapers/2012/02/colorful-background-tablet-wallpaper-plain-green-grass-texture-ipad-tablet-wallpaper.html
+ *
+ * If I'm violating anyones copyright by including any of these, please let me
+ * know so I can take appropriate action.
  */
 
 
@@ -488,9 +499,6 @@ function initScene()
     1.0, 0.0,
     0.0, 0.0
   ], grassTexture);
-  //groundPlane.animate = function(animElapsed) {
-  //  mat4.rotate(groundPlane.transform, radians(60) * animElapsed, [1, 0, 0]);
-  //};
 
   var scene = makeScene();
   scene.rootNode.transform = mat4.identity();
