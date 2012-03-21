@@ -501,8 +501,8 @@ function initScene()
   ], grassTexture);
 
   var scene = makeScene();
-  scene.rootNode.transform = mat4.identity();
-  mat4.translate(scene.rootNode.transform, [0.0, 0.0, -7]);
+  mat4.rotate(scene.cameraTransform, radians(-30), [1, 0, 0]);
+  mat4.translate(scene.cameraTransform, [0, 1, 7]);
   scene.rootNode.children = [ cube, groundPlane ];
 
   return scene;
