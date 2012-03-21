@@ -88,6 +88,19 @@ function makeArrayBuffer(itemSize, numItems, data)
 }
 
 
+function makeIndexBuffer(numIndexes, indexes)
+{
+  var buffer = gl.createBuffer();
+
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indexes), gl.STATIC_DRAW);
+  
+  buffer.numItems = numIndexes;
+
+  return buffer;
+}
+
+
 function makeTexture(textureURL)
 {
   var texture = gl.createTexture();
@@ -116,6 +129,73 @@ function makeShape(drawType, size, points, texCoords, texture)
   shape.pointBuffer = makeArrayBuffer(3, size, points);
   //shape.colorBuffer = makeArrayBuffer(4, size, colors);
   shape.texCoordBuffer = makeArrayBuffer(2, size, texCoords);
+  shape.indexBuffer = null;
+  shape.texture = texture;
+  return shape;
+}
+
+
+function makeCube(texture)
+{
+  shape = {}
+  shape.drawType = gl.TRIANGLES;
+  shape.size = 24;
+  shape.pointBuffer = makeArrayBuffer(3, shape.size, [
+    // Bottom
+    0, 0, 1, // 0
+    1, 0, 1,
+    1, 0, 0,
+    0, 0, 0,
+    // Top
+    0, 1, 1, // 4
+    1, 1, 1,
+    1, 1, 0,
+    0, 1, 0,
+    // Front
+    0, 0, 1, // 8
+    1, 0, 1,
+    1, 1, 1,
+    0, 1, 1,
+    // Back
+    1, 0, 0, // 12
+    0, 0, 0,
+    0, 1, 0,
+    1, 1, 0,
+    // Left
+    0, 0, 1, // 16
+    0, 1, 1,
+    0, 1, 0,
+    0, 0, 0,
+    // Right
+    1, 0, 1, // 20
+    1, 0, 0,
+    1, 1, 0,
+    1, 1, 1
+  ]);
+  var tmpTexCoords = [];
+  for (var i = 0; i < 6; i++)
+    tmpTexCoords.push(0, 0, 1, 0, 1, 1, 0, 1);
+  shape.texCoordBuffer = makeArrayBuffer(2, shape.size, tmpTexCoords);
+  shape.indexBuffer = makeIndexBuffer(36, [
+    // Bottom
+    3, 2, 1,
+    1, 0, 3,
+    // Top
+    4, 5, 6,
+    6, 7, 4,
+    // Front
+    8, 9, 10,
+    10, 11, 8,
+    // Back
+    12, 13, 14,
+    14, 15, 12,
+    // Left
+    16, 17, 18,
+    18, 19, 16,
+    // Right
+    20, 21, 22,
+    22, 23, 20
+  ]);
   shape.texture = texture;
   return shape;
 }
@@ -136,10 +216,7 @@ function makeScene()
 {
   var scene = {}
   scene.rootNode = makeSceneNode();
-  scene.cameraTransform = mat4.create();
-
-  mat4.identity(scene.cameraTransform);
-
+  scene.cameraTransform = mat4.identity();
   return scene;
 }
 
@@ -162,10 +239,8 @@ function makeScene()
 function walkSceneGraph(node, visitor, visitorExtraArgs, parentTransform)
 {
   // Provide a default value for the parentTransform if none is specified.
-  if (!parentTransform) {
-    parentTransform = mat4.create();
-    mat4.identity(parentTransform);
-  }
+  if (!parentTransform)
+    parentTransform = mat4.identity();
 
   // Calculate the local transform for this node.
   var localTransform;
@@ -219,7 +294,14 @@ function drawShape(node, transform, shaderProgram)
   gl.bindTexture(gl.TEXTURE_2D, shape.texture);
   gl.uniform1i(shaderProgram.texUniform, 0);
 
-  gl.drawArrays(shape.drawType, 0, shape.size);
+  if (shape.indexBuffer) {
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, shape.indexBuffer);
+    gl.drawElements(shape.drawType, shape.indexBuffer.numItems, gl.UNSIGNED_SHORT, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+  }
+  else {
+    gl.drawArrays(shape.drawType, 0, shape.size);
+  }
 
   gl.bindTexture(gl.TEXTURE_2D, null);
 }
@@ -351,8 +433,7 @@ function initWebGL(canvas)
   mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, gl.projectionMatrix);
 
   // Set up the base modelview matrix.
-  gl.modelviewMatrix = mat4.create();
-  mat4.identity(gl.modelviewMatrix);
+  gl.modelviewMatrix = mat4.identity();
 }
 
 
@@ -382,46 +463,39 @@ function initShaders()
 
 function initScene()
 {
-  var texture = makeTexture("crate.gif");
+  var crateTexture = makeTexture("crate.gif");
+  var grassTexture = makeTexture("grass.jpg");
 
-  var triangle = makeSceneNode();
-  triangle.transform = mat4.create();
-  mat4.identity(triangle.transform);
-  mat4.translate(triangle.transform, [-1.5, 0.0, -7.0]);
-  triangle.shape = makeShape(gl.TRIANGLES, 3, [
-     0.0,  1.0,  0.0,
-    -1.0, -1.0,  0.0,
-     1.0, -1.0,  0.0
-  ], [
-    1.0, 0.0,
-    0.0, 1.0,
-    0.0, 0.0
-  ], texture);
-  triangle.animate = function(animElapsed) {
-    mat4.rotate(triangle.transform, radians(90) * animElapsed, [0, 1, 0]);
+  var cube = makeSceneNode();
+  cube.transform = mat4.identity();
+  mat4.translate(cube.transform, [-0.5, 0.0, -0.5]);
+  cube.shape = makeCube(crateTexture);
+  cube.animate = function(animElapsed) {
+    mat4.translate(cube.transform, [0.5, 0.0, 0.5]);
+    mat4.rotate(cube.transform, radians(60) * animElapsed, [0, 1, 0]);
+    mat4.translate(cube.transform, [-0.5, 0.0, -0.5]);
   };
 
-  var square = makeSceneNode();
-  square.transform = mat4.create();
-  mat4.identity(square.transform);
-  mat4.translate(square.transform, [1.5, 0.0, -7.0]);
-  square.shape = makeShape(gl.TRIANGLE_STRIP, 4, [
-     1.0,  1.0,  0.0,
-    -1.0,  1.0,  0.0,
-     1.0, -1.0,  0.0,
-    -1.0, -1.0,  0.0
+  var groundPlane = makeSceneNode();
+  groundPlane.shape = makeShape(gl.TRIANGLE_STRIP, 4, [
+     2.0,  0.0,  2.0,
+    -2.0,  0.0,  2.0,
+     2.0,  0.0, -2.0,
+    -2.0,  0.0, -2.0
   ], [
     1.0, 1.0,
     0.0, 1.0,
     1.0, 0.0,
     0.0, 0.0
-  ], texture);
-  square.animate = function(animElapsed) {
-    mat4.rotate(square.transform, radians(60) * animElapsed, [1, 0, 0]);
-  };
+  ], grassTexture);
+  //groundPlane.animate = function(animElapsed) {
+  //  mat4.rotate(groundPlane.transform, radians(60) * animElapsed, [1, 0, 0]);
+  //};
 
   var scene = makeScene();
-  scene.rootNode.children = [ triangle, square ];
+  scene.rootNode.transform = mat4.identity();
+  mat4.translate(scene.rootNode.transform, [0.0, 0.0, -7]);
+  scene.rootNode.children = [ cube, groundPlane ];
 
   return scene;
 }
