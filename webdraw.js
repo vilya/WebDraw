@@ -218,7 +218,7 @@ function makeSceneNode()
   node.transform = null;
   node.shape = null;
   node.animate = null;
-  node.children = null
+  node.children = null;
   return node;
 }
 
