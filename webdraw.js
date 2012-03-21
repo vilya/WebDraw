@@ -408,7 +408,7 @@ function handleMouseMove(event, scene, shaderProgram)
     var deltaY = event.y - gLastMouse.y;
 
     var axis = vec3.create([deltaY, deltaX, 0]);
-    var angle = radians(vec3.length(axis) / 10);
+    var angle = -radians(vec3.length(axis) / 10);
     vec3.normalize(axis);
     mat4.rotate(scene.cameraTransform, angle, axis);
 
