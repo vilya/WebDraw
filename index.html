@@ -42,17 +42,23 @@
       varying vec2 vTexCoord;
       varying vec3 vWorldPos;
 
+      uniform bool positionPass;
       uniform sampler2D tex;
 
       void main()
       {
         //gl_FragColor = vColor;
-        //gl_FragColor = texture2D(tex, vTexCoord);
-        gl_FragColor = vec4(vWorldPos, 1);
+        if (positionPass)
+          gl_FragColor = vec4(vWorldPos, 1);
+        else
+          gl_FragColor = texture2D(tex, vTexCoord);
       }
     </script>
   </head>
   <body onload='webGLStart("webdraw-canvas");'>
     <canvas id="webdraw-canvas" width="500" height="500"></canvas>
+    <br/>
+
+    <input type="checkbox" id="positionPass">Position pass</input>
   </body>
 </html>

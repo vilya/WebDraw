@@ -331,6 +331,10 @@ function drawScene(scene, shaderProgram)
   else {
     gl.uniformMatrix4fv(shaderProgram.worldToViewportMatrix, false, gl.projectionMatrix);
   }
+
+  var positionPass = document.getElementById("positionPass").checked;
+  gl.uniform1i(shaderProgram.positionPass, positionPass);
+
   walkSceneGraph(scene.rootNode, drawShape, shaderProgram);
 }
 
@@ -455,6 +459,7 @@ function initShaders()
   shaderProgram.localToWorldMatrix = gl.getUniformLocation(shaderProgram, "localToWorldMatrix");
   shaderProgram.worldToViewportMatrix = gl.getUniformLocation(shaderProgram, "worldToViewportMatrix");
   shaderProgram.texUniform = gl.getUniformLocation(shaderProgram, "tex");
+  shaderProgram.positionPass = gl.getUniformLocation(shaderProgram, "positionPass");
 
   shaderProgram.vertexPosAttr = gl.getAttribLocation(shaderProgram, "vertexPos");
   shaderProgram.vertexTexCoordAttr = gl.getAttribLocation(shaderProgram, "vertexTexCoord");
