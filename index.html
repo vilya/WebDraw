@@ -14,13 +14,11 @@
     <!-- Vertex shader. -->
     <script type="x-shader/x-vertex" id="shader-vs">
       attribute vec3 vertexPos;
-      //attribute vec4 vertexColor;
       attribute vec2 vertexTexCoord;
 
       uniform mat4 localToWorldMatrix;
       uniform mat4 worldToViewportMatrix;
 
-      //varying vec4 vColor;
       varying vec2 vTexCoord;
       varying vec3 vWorldPos;
 
@@ -28,7 +26,6 @@
       {
         vec4 worldPos = localToWorldMatrix * vec4(vertexPos, 1);
         gl_Position = worldToViewportMatrix * worldPos;
-        //vColor = vertexColor;
         vTexCoord = vertexTexCoord;
         vWorldPos = worldPos.xyz;
       }
@@ -38,17 +35,18 @@
     <script type="x-shader/x-fragment" id="shader-fs">
       precision mediump float;
 
-      //varying vec4 vColor;
       varying vec2 vTexCoord;
       varying vec3 vWorldPos;
 
-      uniform bool positionPass;
+      uniform int renderPass;
       uniform sampler2D tex;
+
+      const int kColorPass = 0;
+      const int kWorldPositionPass = 1;
 
       void main()
       {
-        //gl_FragColor = vColor;
-        if (positionPass)
+        if (renderPass == kWorldPositionPass)
           gl_FragColor = vec4(vWorldPos, 1);
         else
           gl_FragColor = texture2D(tex, vTexCoord);
@@ -59,6 +57,10 @@
     <canvas id="webdraw-canvas" width="500" height="500"></canvas>
     <br/>
 
-    <input type="checkbox" id="positionPass">Position pass</input>
+    Render output
+    <select id="renderPass">
+      <option value="0" selected>Colour</option>
+      <option value="1">World position</option>
+    </select>
   </body>
 </html>

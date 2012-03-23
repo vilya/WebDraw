@@ -138,7 +138,6 @@ function makeShape(drawType, size, points, texCoords, texture)
   shape.drawType = drawType;
   shape.size = size;
   shape.pointBuffer = makeArrayBuffer(3, size, points);
-  //shape.colorBuffer = makeArrayBuffer(4, size, colors);
   shape.texCoordBuffer = makeArrayBuffer(2, size, texCoords);
   shape.indexBuffer = null;
   shape.texture = texture;
@@ -290,11 +289,6 @@ function drawShape(node, transform, shaderProgram)
   gl.bindBuffer(gl.ARRAY_BUFFER, shape.pointBuffer);
   gl.vertexAttribPointer(shaderProgram.vertexPosAttr, shape.pointBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-  /*
-  gl.bindBuffer(gl.ARRAY_BUFFER, shape.colorBuffer);
-  gl.vertexAttribPointer(shaderProgram.vertexColorAttr, shape.colorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-  */
-
   gl.bindBuffer(gl.ARRAY_BUFFER, shape.texCoordBuffer);
   gl.vertexAttribPointer(shaderProgram.vertexTexCoordAttr, shape.texCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
@@ -332,8 +326,8 @@ function drawScene(scene, shaderProgram)
     gl.uniformMatrix4fv(shaderProgram.worldToViewportMatrix, false, gl.projectionMatrix);
   }
 
-  var positionPass = document.getElementById("positionPass").checked;
-  gl.uniform1i(shaderProgram.positionPass, positionPass);
+  var renderPass = parseInt(document.getElementById("renderPass").value);
+  gl.uniform1i(shaderProgram.renderPass, renderPass);
 
   walkSceneGraph(scene.rootNode, drawShape, shaderProgram);
 }
@@ -459,7 +453,7 @@ function initShaders()
   shaderProgram.localToWorldMatrix = gl.getUniformLocation(shaderProgram, "localToWorldMatrix");
   shaderProgram.worldToViewportMatrix = gl.getUniformLocation(shaderProgram, "worldToViewportMatrix");
   shaderProgram.texUniform = gl.getUniformLocation(shaderProgram, "tex");
-  shaderProgram.positionPass = gl.getUniformLocation(shaderProgram, "positionPass");
+  shaderProgram.renderPass = gl.getUniformLocation(shaderProgram, "renderPass");
 
   shaderProgram.vertexPosAttr = gl.getAttribLocation(shaderProgram, "vertexPos");
   shaderProgram.vertexTexCoordAttr = gl.getAttribLocation(shaderProgram, "vertexTexCoord");
