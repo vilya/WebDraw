@@ -1,0 +1,27 @@
+Render-to-texture
+=================
+
+- Render scene to a texture.
+
+- Render the texture on a screen aligned quad to do post-processing with a
+  fragment shader.
+
+
+Lighting
+========
+
+- Lights to be stored in scene graph nodes, so they can be transformed along
+  with the other node contents.
+
+- Before rendering we'll walk the scene graph once to gather all the light
+  positions and transform them into world coordinates.
+
+- We'll need to pass separate matrices into the shaders for the local-to-world,
+  world-to-camera and camera-to-viewport transforms. (Might be able to combine
+  the last two - look into this...).
+
+- Add code to the shaders to do the lighting calculations. (Or should we do
+  these as separate passes...?)
+
+
+
