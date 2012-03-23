@@ -284,11 +284,8 @@ function drawShape(node, transform, shaderProgram)
     return;
 
   var shape = node.shape;
-  var mvpMatrix = mat4.create();
 
-  mat4.multiply(gl.projectionMatrix, gl.modelviewMatrix, mvpMatrix);
-  mat4.multiply(mvpMatrix, transform, mvpMatrix);
-  gl.uniformMatrix4fv(shaderProgram.mvpMatrixUniform, false, mvpMatrix);
+  gl.uniformMatrix4fv(shaderProgram.localToWorldMatrix, false, transform);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, shape.pointBuffer);
   gl.vertexAttribPointer(shaderProgram.vertexPosAttr, shape.pointBuffer.itemSize, gl.FLOAT, false, 0, 0);
@@ -328,12 +325,13 @@ function drawScene(scene, shaderProgram)
   if (scene.cameraTransform) {
     var transform = mat4.create();
     mat4.inverse(scene.cameraTransform, transform);
-
-    walkSceneGraph(scene.rootNode, drawShape, shaderProgram, transform);
+    mat4.multiply(gl.projectionMatrix, transform, transform);
+    gl.uniformMatrix4fv(shaderProgram.worldToViewportMatrix, false, transform);
   }
   else {
-    walkSceneGraph(scene.rootNode, drawShape);
+    gl.uniformMatrix4fv(shaderProgram.worldToViewportMatrix, false, gl.projectionMatrix);
   }
+  walkSceneGraph(scene.rootNode, drawShape, shaderProgram);
 }
 
 
@@ -442,9 +440,6 @@ function initWebGL(canvas)
   // Set up the default camera projection matrix.
   gl.projectionMatrix = mat4.create();
   mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, gl.projectionMatrix);
-
-  // Set up the base modelview matrix.
-  gl.modelviewMatrix = mat4.identity();
 }
 
 
@@ -457,7 +452,8 @@ function initShaders()
 
   gl.useProgram(shaderProgram);
 
-  shaderProgram.mvpMatrixUniform = gl.getUniformLocation(shaderProgram, "mvpMatrix");
+  shaderProgram.localToWorldMatrix = gl.getUniformLocation(shaderProgram, "localToWorldMatrix");
+  shaderProgram.worldToViewportMatrix = gl.getUniformLocation(shaderProgram, "worldToViewportMatrix");
   shaderProgram.texUniform = gl.getUniformLocation(shaderProgram, "tex");
 
   shaderProgram.vertexPosAttr = gl.getAttribLocation(shaderProgram, "vertexPos");

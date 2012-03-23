@@ -17,16 +17,20 @@
       //attribute vec4 vertexColor;
       attribute vec2 vertexTexCoord;
 
-      uniform mat4 mvpMatrix;
+      uniform mat4 localToWorldMatrix;
+      uniform mat4 worldToViewportMatrix;
 
       //varying vec4 vColor;
       varying vec2 vTexCoord;
+      varying vec3 vWorldPos;
 
       void main()
       {
-        gl_Position = mvpMatrix * vec4(vertexPos, 1.0);
+        vec4 worldPos = localToWorldMatrix * vec4(vertexPos, 1);
+        gl_Position = worldToViewportMatrix * worldPos;
         //vColor = vertexColor;
         vTexCoord = vertexTexCoord;
+        vWorldPos = worldPos.xyz;
       }
     </script>
 
@@ -36,13 +40,15 @@
 
       //varying vec4 vColor;
       varying vec2 vTexCoord;
+      varying vec3 vWorldPos;
 
       uniform sampler2D tex;
 
       void main()
       {
         //gl_FragColor = vColor;
-        gl_FragColor = texture2D(tex, vTexCoord);
+        //gl_FragColor = texture2D(tex, vTexCoord);
+        gl_FragColor = vec4(vWorldPos, 1);
       }
     </script>
   </head>
