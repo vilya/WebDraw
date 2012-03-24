@@ -15,12 +15,14 @@
     <script type="x-shader/x-vertex" id="shader-vs">
       attribute vec3 vertexPos;
       attribute vec2 vertexTexCoord;
+      attribute vec3 normal;
 
       uniform mat4 localToWorldMatrix;
       uniform mat4 worldToViewportMatrix;
 
       varying vec2 vTexCoord;
       varying vec3 vWorldPos;
+      varying vec3 vNormal;
 
       void main()
       {
@@ -28,6 +30,7 @@
         gl_Position = worldToViewportMatrix * worldPos;
         vTexCoord = vertexTexCoord;
         vWorldPos = worldPos.xyz;
+        vNormal = normal;
       }
     </script>
 
@@ -37,17 +40,22 @@
 
       varying vec2 vTexCoord;
       varying vec3 vWorldPos;
+      varying vec3 vNormal;
 
       uniform int renderPass;
       uniform sampler2D tex;
 
       const int kColorPass = 0;
       const int kWorldPositionPass = 1;
+      const int kNormalPass = 2;
 
       void main()
       {
         if (renderPass == kWorldPositionPass)
           gl_FragColor = vec4(vWorldPos, 1);
+        else if (renderPass == kNormalPass) {
+          gl_FragColor = vec4(vNormal / 2.0 + 0.5, 1);
+        }
         else
           gl_FragColor = texture2D(tex, vTexCoord);
       }
@@ -61,6 +69,7 @@
     <select id="renderPass">
       <option value="0" selected>Colour</option>
       <option value="1">World position</option>
+      <option value="2">Normals</option>
     </select>
   </body>
 </html>

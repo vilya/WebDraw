@@ -132,13 +132,14 @@ function makeTexture(textureURL)
 }
 
 
-function makeShape(drawType, size, points, texCoords, texture)
+function makeShape(drawType, size, points, texCoords, normals, texture)
 {
   shape = {}
   shape.drawType = drawType;
   shape.size = size;
   shape.pointBuffer = makeArrayBuffer(3, size, points);
   shape.texCoordBuffer = makeArrayBuffer(2, size, texCoords);
+  shape.normalBuffer = makeArrayBuffer(3, size, normals);
   shape.indexBuffer = null;
   shape.texture = texture;
   return shape;
@@ -182,10 +183,27 @@ function makeCube(texture)
     1, 1, 0,
     1, 1, 1
   ]);
+
   var tmpTexCoords = [];
   for (var i = 0; i < 6; i++)
     tmpTexCoords.push(0, 0, 1, 0, 1, 1, 0, 1);
   shape.texCoordBuffer = makeArrayBuffer(2, shape.size, tmpTexCoords);
+
+  var tmpNormals = [];
+  for (var i = 0; i < 4; i++) // bottom
+    tmpNormals.push(0, -1, 0);
+  for (var i = 0; i < 4; i++) // top
+    tmpNormals.push(0, 1, 0);
+  for (var i = 0; i < 4; i++) // front
+    tmpNormals.push(0, 0, 1);
+  for (var i = 0; i < 4; i++) // back
+    tmpNormals.push(0, 0, -1);
+  for (var i = 0; i < 4; i++) // left
+    tmpNormals.push(-1, 0, 0);
+  for (var i = 0; i < 4; i++) // right
+    tmpNormals.push(1, 0, 0);
+  shape.normalBuffer = makeArrayBuffer(3, shape.size, tmpNormals);
+
   shape.indexBuffer = makeIndexBuffer(36, [
     // Bottom
     3, 2, 1,
@@ -206,6 +224,7 @@ function makeCube(texture)
     20, 21, 22,
     22, 23, 20
   ]);
+
   shape.texture = texture;
   return shape;
 }
@@ -291,6 +310,9 @@ function drawShape(node, transform, shaderProgram)
 
   gl.bindBuffer(gl.ARRAY_BUFFER, shape.texCoordBuffer);
   gl.vertexAttribPointer(shaderProgram.vertexTexCoordAttr, shape.texCoordBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, shape.normalBuffer);
+  gl.vertexAttribPointer(shaderProgram.vertexNormalAttr, shape.normalBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, shape.texture);
@@ -457,9 +479,11 @@ function initShaders()
 
   shaderProgram.vertexPosAttr = gl.getAttribLocation(shaderProgram, "vertexPos");
   shaderProgram.vertexTexCoordAttr = gl.getAttribLocation(shaderProgram, "vertexTexCoord");
+  shaderProgram.vertexNormalAttr = gl.getAttribLocation(shaderProgram, "normal");
 
   gl.enableVertexAttribArray(shaderProgram.vertexPosAttr);
   gl.enableVertexAttribArray(shaderProgram.vertexTexCoordAttr);
+  gl.enableVertexAttribArray(shaderProgram.vertexNormalAttr);
 
   gl.useProgram(null);
 
@@ -493,6 +517,11 @@ function initScene()
     0.0, 1.0,
     1.0, 0.0,
     0.0, 0.0
+  ], [
+    0, 1, 0,
+    0, 1, 0,
+    0, 1, 0,
+    0, 1, 0
   ], grassTexture);
 
   var scene = makeScene();
